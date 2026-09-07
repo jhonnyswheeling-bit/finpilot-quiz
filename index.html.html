@@ -7,6 +7,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1400474798943932');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1400474798943932&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 <style>
   :root{
     --bg:#FFFFFF;
@@ -732,6 +750,22 @@ const DIAGNOSES = {
   EVOL: { name:'CONTROLE SEM EVOLUÇÃO', desc:'Você já acompanha seu dinheiro. O próximo passo é transformar esse controle em decisões e evolução.', attn:['Evolução','Interpretação','Decisão'] },
 };
 
+/* ---------------- Meta Pixel (adicional ao tracking interno) ---------------- */
+const MetaPixel = {
+  firedOnce: { QuizStarted:false, QuizCompleted:false, ViewContent:false },
+  standard(eventName, params){
+    if(typeof fbq === 'function') fbq('track', eventName, params||{});
+  },
+  custom(eventName, params){
+    if(typeof fbq === 'function') fbq('trackCustom', eventName, params||{});
+  },
+  once(key, fn){
+    if(this.firedOnce[key]) return;
+    this.firedOnce[key] = true;
+    fn();
+  }
+};
+
 /* ---------------- Tracking ---------------- */
 const Track = {
   utm: {},
@@ -779,6 +813,7 @@ const Funnel = {
 
   start(){
     Track.event('intro_cta_clicked');
+    MetaPixel.once('QuizStarted', ()=>MetaPixel.custom('QuizStarted'));
     this.buildOrder();
     this.pos = 0;
     this.show('screen-quiz');
@@ -880,6 +915,7 @@ const Funnel = {
   finishQuiz(){
     const diagnosis = this.computeDiagnosis();
     this.lastDiagnosis = diagnosis;
+    MetaPixel.once('QuizCompleted', ()=>MetaPixel.custom('QuizCompleted'));
     this.show('screen-processing');
     this.runProcessingAnimation(diagnosis);
   },
@@ -926,6 +962,7 @@ const Funnel = {
 
   goToSalesPage(){
     Track.event('sales_page_viewed');
+    MetaPixel.once('ViewContent', ()=>MetaPixel.standard('ViewContent'));
     const d = this.lastDiagnosis;
     if(d){
       document.getElementById('sp-diag-name').textContent = DIAGNOSES[d.key].name;
@@ -966,6 +1003,7 @@ const Funnel = {
     Track.event('offer_clicked');
     if(CHECKOUT_URL){
       Track.event('checkout_started');
+      MetaPixel.standard('InitiateCheckout');
       window.location.href = CHECKOUT_URL;
     } else {
       const note = document.getElementById('checkout-note');
